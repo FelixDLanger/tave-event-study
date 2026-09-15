@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you use this software or its results, please cite the paper below."
+title: "TAVE - Tokenized Asset Valuation Engine: event-study pipeline and valuation tool"
+abstract: >-
+  Replication code for a five-channel framework mapping enterprise asset
+  tokenization onto the weighted average cost of capital, an event study of
+  1,169 verified tokenization announcements by 35 listed firms (2021-2025),
+  and an open-source valuation tool implementing the framework.
+type: software
+license: AGPL-3.0-or-later
+repository-code: "https://github.com/FelixDLanger/tave-event-study"
+authors:
+  - family-names: Langer
+    given-names: Felix D.
+    orcid: "https://orcid.org/0009-0000-3205-8088"
+    affiliation: "Independent Researcher; Doctoral Candidate (DBA), GlobalNxt University"
+keywords:
+  - tokenization
+  - cost of capital
+  - event study
+  - illiquidity premium
+  - real-world assets
+preferred-citation:
+  type: article
+  title: >-
+    Tokenization and the Cost of Capital: A Five-Channel Valuation Framework
+    with Event-Study and Practitioner Evidence
+  year: 2026
+  authors:
+    - family-names: Langer
+      given-names: Felix D.
+      orcid: "https://orcid.org/0009-0000-3205-8088"
+  notes: "SSRN working paper. Add the SSRN abstract ID and URL once posted."
