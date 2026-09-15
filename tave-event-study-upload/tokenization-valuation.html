@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<!--
+  TAVE — Tokenized Asset Valuation Engine (Research Tool)
+  Copyright (C) 2026 Felix Diego Langer
+
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License as published by the Free
+  Software Foundation, either version 3 of the License, or (at your option)
+  any later version. Distributed WITHOUT ANY WARRANTY; without even the implied
+  warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See <https://www.gnu.org/licenses/agpl-3.0.html>. Commercial licensing:
+  see COMMERCIAL.md in the repository.
+
+  RESEARCH TOOL — NOT FINANCIAL ADVICE. Channel calibrations derive from a
+  single academic event study (1,169 firm-events, 2021-2025, five markets) and
+  from published literature ranges. Outputs are illustrative research
+  estimates, not market parameters, valuations, or investment recommendations.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TAVE — Tokenized Asset Valuation Engine</title>
+<style>
+  :root{
+    --bone:#F5F1E8; --cream:#FBF8F1; --sand:#EAE3D3; --earth:#D8CDB6;
+    --ink:#3A2F23; --ink-soft:#6B5D4A; --muted:#9A8C74;
+    --gold:#A8842C; --gold-deep:#7E6320; --bronze:#8C6A3F;
+    --pos:#5D7A4A; --neg:#A0522D; --line:#DDD3BE;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:Georgia,'Times New Roman',serif;
+    background:var(--bone); color:var(--ink);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100' viewBox='0 0 56 100'%3E%3Cpath d='M28 0L56 25v50L28 100 0 75V25z' fill='none' stroke='%23D8CDB6' stroke-opacity='0.25' stroke-width='1'/%3E%3C/svg%3E");
+    min-height:100vh;
+  }
+  .mono{font-family:'SF Mono',Consolas,'Courier New',monospace}
+
+  header{
+    border-bottom:1px solid var(--line);
+    background:linear-gradient(to bottom,var(--cream),var(--bone));
+    padding:18px 36px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:center;gap:14px}
+  .brand-mark{
+    width:34px;height:34px;border:1.5px solid var(--gold);
+    clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--gold-deep);font-size:13px;font-weight:bold;background:var(--cream);
+  }
+  .brand-name{font-size:19px;letter-spacing:.5px}
+  .brand-name em{color:var(--gold-deep);font-style:italic}
+  .brand-sub{font-size:10.5px;color:var(--muted);letter-spacing:1.6px;text-transform:uppercase;margin-top:2px}
+  .header-right{font-size:10.5px;color:var(--ink-soft);text-align:right;line-height:1.5}
+  .header-right .mono{color:var(--gold-deep)}
+
+  .chain-wrap{padding:22px 36px 6px}
+  .chain-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+  .chain{display:flex;align-items:stretch;flex-wrap:wrap;row-gap:14px}
+  .block{
+    background:var(--cream); border:1px solid var(--line);
+    border-top:2px solid var(--gold); padding:10px 16px; min-width:160px;
+  }
+  .block .b-tag{font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted)}
+  .block .b-val{font-size:16px;color:var(--ink);margin-top:3px}
+  .block .b-val .mono{color:var(--gold-deep)}
+  .block .b-sub{font-size:9.5px;color:var(--ink-soft);margin-top:2px}
+  .link{width:30px;display:flex;align-items:center;justify-content:center;color:var(--earth);user-select:none}
+  .link::before{content:"⛓";opacity:.55;font-size:11px}
+
+  .app{display:grid;grid-template-columns:296px 1fr;gap:0;align-items:start}
+  @media(max-width:980px){.app{grid-template-columns:1fr}}
+
+  aside.sidebar{
+    background:var(--cream); border-right:1px solid var(--line);
+    padding:26px 22px; position:sticky; top:0; max-height:100vh; overflow-y:auto;
+  }
+  @media(max-width:980px){aside.sidebar{position:static;max-height:none}}
+  .section-label{
+    font-size:10px;letter-spacing:2px;text-transform:uppercase;
+    color:var(--gold-deep);border-bottom:1px solid var(--line);
+    padding-bottom:6px;margin:26px 0 14px;
+  }
+  .section-label:first-child{margin-top:0}
+
+  .asset-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .asset-btn{
+    font-family:inherit;font-size:11.5px;padding:8px 6px;cursor:pointer;
+    background:var(--bone);border:1px solid var(--line);color:var(--ink-soft);
+    transition:all .15s;
+  }
+  .asset-btn:hover:not(.active){border-color:var(--bronze);color:var(--ink)}
+  .asset-btn.active{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+  .asset-btn:focus-visible{outline:2px solid var(--gold-deep)}
+  .asset-meta{
+    margin-top:10px;padding:9px 11px;background:var(--bone);
+    border-left:2px solid var(--gold);font-size:10.5px;color:var(--ink-soft);line-height:1.65;
+  }
+  .asset-meta .mono{color:var(--gold-deep)}
+
+  .input-group{margin-bottom:17px}
+  .input-label{display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px}
+  .input-value{color:var(--gold-deep);font-family:'SF Mono',Consolas,monospace;font-size:11px}
+  input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:3px;background:var(--earth);outline:none}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:13px;height:13px;background:var(--gold);
+    border:2px solid var(--cream);box-shadow:0 0 0 1px var(--gold-deep);
+    clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);cursor:pointer;
+  }
+  input[type=range]:focus-visible{outline:2px solid var(--gold-deep);outline-offset:4px}
+  select{
+    width:100%;font-family:inherit;font-size:12px;padding:8px;color:var(--ink);
+    background:var(--bone);border:1px solid var(--line);
+  }
+  select:focus-visible{outline:2px solid var(--gold-deep)}
+
+  main{padding:26px 36px 70px}
+  .page-title{font-size:31px;line-height:1.2;letter-spacing:-.3px}
+  .page-title em{color:var(--gold-deep);font-style:italic}
+  .page-subtitle{font-size:12.5px;color:var(--ink-soft);margin:8px 0 22px;max-width:720px;line-height:1.8}
+
+  .badge{
+    display:inline-block;font-size:8.5px;letter-spacing:1.1px;text-transform:uppercase;
+    padding:2.5px 7px;border:1px solid;vertical-align:middle;margin-left:6px;
+    font-family:'SF Mono',Consolas,monospace;
+  }
+  .badge.emp-sup{color:var(--pos);border-color:var(--pos)}
+  .badge.emp-null{color:var(--neg);border-color:var(--neg)}
+  .badge.dir{color:var(--bronze);border-color:var(--bronze)}
+  .badge.lit{color:var(--muted);border-color:var(--earth)}
+
+  .results-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}
+  @media(max-width:1180px){.results-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:600px){.results-grid{grid-template-columns:1fr}}
+  .metric-card{
+    background:var(--cream);border:1px solid var(--line);padding:16px 18px;
+    border-top:2px solid var(--earth);
+  }
+  .metric-card.gold{border-top-color:var(--gold)}
+  .metric-name{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted)}
+  .metric-value{font-size:27px;margin:7px 0 4px;font-family:'SF Mono',Consolas,monospace;color:var(--ink)}
+  .metric-delta{font-size:10.5px;color:var(--ink-soft)}
+  .delta-down{color:var(--bronze)}
+
+  .wacc-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:26px}
+  @media(max-width:1180px){.wacc-grid{grid-template-columns:1fr}}
+  .panel{background:var(--cream);border:1px solid var(--line);padding:20px 22px}
+  .section-title{font-size:14.5px;margin-bottom:16px;display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+  .section-tag{font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);padding:2px 8px}
+
+  .waterfall-row{display:grid;grid-template-columns:178px 1fr 64px;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed var(--sand);font-size:11.5px}
+  .waterfall-row:last-child{border-bottom:none}
+  .wf-label{color:var(--ink-soft)}
+  .wf-label .badge{margin-left:4px}
+  .wf-bar-wrap{height:7px;background:var(--bone);border:1px solid var(--sand)}
+  .wf-bar{height:100%;transition:width .35s}
+  .wf-val{text-align:right;font-family:'SF Mono',Consolas,monospace;font-size:11px;color:var(--ink)}
+  .wf-total .wf-label{color:var(--ink);font-weight:bold}
+
+  .effect-row{display:flex;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px dashed var(--sand)}
+  .effect-row:last-child{border-bottom:none}
+  .effect-name{font-size:12.5px;color:var(--ink)}
+  .effect-desc{font-size:10.5px;color:var(--muted);margin-top:3px;max-width:330px;line-height:1.55}
+  .effect-impact{font-family:'SF Mono',Consolas,monospace;font-size:14px;text-align:right}
+  .effect-direction{font-size:9.5px;text-align:right;margin-top:2px;letter-spacing:.5px}
+
+  .formula-panel{background:var(--ink);color:var(--bone);padding:20px 24px;margin-bottom:26px}
+  .fn-title{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+  .formula{font-family:'SF Mono',Consolas,monospace;font-size:12px;line-height:1.9;color:var(--sand)}
+  .formula b{color:var(--gold)}
+
+  .heatmap{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;margin-top:10px}
+  .hm-cell{padding:9px 4px;text-align:center;font-family:'SF Mono',Consolas,monospace;font-size:10.5px}
+  .hm-header{background:var(--ink);color:var(--bone);font-size:9px;letter-spacing:.5px}
+  .hm-row-label{background:var(--sand);color:var(--ink)}
+
+  .scenario-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:980px){.scenario-grid{grid-template-columns:1fr}}
+  .scenario{border:1px solid var(--line);background:var(--bone);padding:14px 16px}
+  .scenario h4{font-size:12px;letter-spacing:.6px;margin-bottom:8px;color:var(--gold-deep)}
+  .scenario .s-line{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-soft);padding:3.5px 0;border-bottom:1px dashed var(--sand)}
+  .scenario .s-line:last-child{border-bottom:none}
+  .scenario .s-line .mono{color:var(--ink)}
+
+  footer{
+    border-top:1px solid var(--line);margin-top:10px;padding:22px 36px;
+    font-size:10px;color:var(--muted);line-height:1.75;background:var(--cream);
+  }
+  footer b{color:var(--ink-soft)}
+
+  .modal-veil{position:fixed;inset:0;background:rgba(58,47,35,.55);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .modal{background:var(--cream);border:1px solid var(--line);border-top:3px solid var(--gold);max-width:640px;padding:30px 34px;max-height:88vh;overflow-y:auto}
+  .modal h2{font-size:19px;margin-bottom:4px}
+  .modal .m-sub{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--gold-deep);margin-bottom:16px}
+  .modal p{font-size:12px;color:var(--ink-soft);line-height:1.75;margin-bottom:11px}
+  .modal ul{margin:0 0 11px 18px}
+  .modal li{font-size:11.5px;color:var(--ink-soft);line-height:1.7;margin-bottom:5px}
+  .modal .ack{
+    font-family:inherit;font-size:13px;margin-top:8px;cursor:pointer;
+    background:var(--ink);color:var(--cream);border:none;padding:11px 26px;letter-spacing:.5px;
+  }
+  .modal .ack:hover{background:var(--gold-deep)}
+  .modal .ack:focus-visible{outline:2px solid var(--gold-deep);outline-offset:3px}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.fw-wrap{max-width:1180px;margin:0 auto 18px;padding:16px 20px 10px;background:#FBF8F1;border:1px solid #EAE3D3;border-radius:10px}
+.fw-svg{width:100%;height:auto;display:block;margin-top:6px;font-family:inherit}
+@media(max-width:760px){.fw-wrap{padding:10px 8px}}
+</style>
+</head>
+<body>
+
+<!-- ============ DISCLAIMER MODAL ============ -->
+<div class="modal-veil" id="disclaimer">
+  <div class="modal" role="dialog" aria-labelledby="dm-title" aria-modal="true">
+    <h2 id="dm-title">Academic Research Tool — Important Notice</h2>
+    <div class="m-sub">Read before use</div>
+    <p><b>TAVE is a research instrument, not an advisory service.</b> It illustrates how a five-channel
+    valuation framework for enterprise asset tokenization responds to user-chosen inputs. It does not
+    produce valuations, price targets, or recommendations of any kind.</p>
+    <ul>
+      <li><b>No investment, legal, tax, or accounting advice.</b> Nothing here constitutes a recommendation,
+      solicitation, or offer to buy or sell any security, token, or instrument, in any jurisdiction —
+      including for the purposes of MiFID II (EU), the U.S. Investment Advisers Act of 1940, and the
+      Singapore Financial Advisers Act 2001. The author is not a licensed financial adviser.</li>
+      <li><b>Research estimates, not market parameters.</b> Empirically-badged values derive from a single
+      academic event study (1,169 firm-events, 2021–2025, five markets, 17 firm clusters) and carry that
+      study's documented limitations. Literature-badged values are published academic ranges applied as
+      assumptions. Several channels are explicitly untested or returned null results.</li>
+      <li><b>No warranty; no liability.</b> Provided "as is" under AGPL-3.0, without warranty of any kind.
+      The author accepts no liability for decisions made or losses incurred in reliance on this tool.</li>
+      <li><b>Cite the research.</b> Academic or commercial use should cite the accompanying SSRN working
+      paper (see footer). Commercial licensing of the framework is available separately (COMMERCIAL.md).</li>
+    </ul>
+    <button class="ack" onclick="document.getElementById('disclaimer').style.display='none'">I understand — continue to the research tool</button>
+  </div>
+</div>
+
+<header>
+  <div class="brand">
+    <div class="brand-mark">T</div>
+    <div>
+      <div class="brand-name">TAVE — Tokenized Asset <em>Valuation</em> Engine</div>
+      <div class="brand-sub">Five-channel WACC framework · Research edition</div>
+    </div>
+  </div>
+  <div class="header-right">
+    Calibrated to the 2026 event study<br>
+    <span class="mono">N = 1,169 · 5 markets · 2021–2025</span>
+  </div>
+</header>
+
+<!-- ============ EVIDENCE CHAIN (paper anchors) ============ -->
+<div class="chain-wrap">
+  <div class="chain-label">Evidence chain — empirical anchors from the underlying study</div>
+  <div class="chain">
+    <div class="block">
+      <div class="b-tag">Sample</div>
+      <div class="b-val"><span class="mono">1,169</span> firm-events</div>
+      <div class="b-sub">35 firms · US · SG · CH · DE · UK</div>
+    </div>
+    <div class="link" aria-hidden="true"></div>
+    <div class="block">
+      <div class="b-tag">Announcement reaction</div>
+      <div class="b-val"><span class="mono">−0.260%</span> CAAR</div>
+      <div class="b-sub">(−1,+1) window · BMP p = 0.002 — risk-pricing</div>
+    </div>
+    <div class="link" aria-hidden="true"></div>
+    <div class="block">
+      <div class="b-tag">Jurisdiction effect</div>
+      <div class="b-val"><span class="mono">not robust</span></div>
+      <div class="b-sub">analytic p &lt; 0.001 is a few-cluster artifact · WCB p = 0.31</div>
+    </div>
+    <div class="link" aria-hidden="true"></div>
+    <div class="block">
+      <div class="b-tag">Illiquidity channel</div>
+      <div class="b-val"><span class="mono">−2.7%</span> price impact (DiD)</div>
+      <div class="b-sub">mechanism p &lt; 0.001 · pricing null (p = 0.63)</div>
+    </div>
+    <div class="link" aria-hidden="true"></div>
+    <div class="block">
+      <div class="b-tag">Audit disclosure</div>
+      <div class="b-val"><span class="mono">0 / 1,169</span></div>
+      <div class="b-sub">no issuer disclosed a smart-contract audit</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============ FRAMEWORK DIAGRAM (Figure 1 of the paper) ============ -->
+<div class="fw-wrap">
+  <div class="chain-label">The framework &mdash; five channels from blockchain property to cost of capital</div>
+  <svg class="fw-svg" viewBox="0 0 1000 400" xmlns="http://www.w3.org/2000/svg" role="img"
+       aria-label="TAVE framework: enterprise asset tokenization maps through five channels onto WACC.">
+    <defs>
+      <marker id="ah" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L6,3 L0,6 z" fill="#8a7f6d"/>
+      </marker>
+    </defs>
+    <text x="18" y="22" font-size="11" font-weight="700" fill="#A8842C" letter-spacing="1">TRIGGER</text>
+    <text x="250" y="22" font-size="11" font-weight="700" fill="#A8842C" letter-spacing="1">PROPERTY</text>
+    <text x="520" y="22" font-size="11" font-weight="700" fill="#A8842C" letter-spacing="1">CHANNEL</text>
+    <text x="820" y="22" font-size="11" font-weight="700" fill="#A8842C" letter-spacing="1">EVIDENCE</text>
+    <rect x="14" y="150" width="150" height="70" rx="8" fill="#3A2F23"/>
+    <text x="89" y="180" text-anchor="middle" font-size="14" font-weight="700" fill="#FBF8F1">Enterprise Asset</text>
+    <text x="89" y="200" text-anchor="middle" font-size="12" fill="#DDD3BE">Tokenization</text>
+    <g font-size="11.5" fill="#3A2F23">
+      <rect x="240" y="40"  width="215" height="52" rx="6" fill="#F5F1E8" stroke="#EAE3D3"/>
+      <text x="347" y="62"  text-anchor="middle">Fractionalization +</text><text x="347" y="78" text-anchor="middle">secondary tradability</text>
+      <rect x="240" y="102" width="215" height="52" rx="6" fill="#F5F1E8" stroke="#EAE3D3"/>
+      <text x="347" y="124" text-anchor="middle">Shared ledger +</text><text x="347" y="140" text-anchor="middle">transparency</text>
+      <rect x="240" y="164" width="215" height="52" rx="6" fill="#F5F1E8" stroke="#EAE3D3"/>
+      <text x="347" y="186" text-anchor="middle">Immutability +</text><text x="347" y="202" text-anchor="middle">provenance</text>
+      <rect x="240" y="226" width="215" height="52" rx="6" fill="#F5F1E8" stroke="#EAE3D3"/>
+      <text x="347" y="248" text-anchor="middle">Autonomous code</text><text x="347" y="264" text-anchor="middle">execution</text>
+      <rect x="240" y="288" width="215" height="52" rx="6" fill="#F5F1E8" stroke="#EAE3D3"/>
+      <text x="347" y="310" text-anchor="middle">Unsettled legal</text><text x="347" y="326" text-anchor="middle">classification</text>
+    </g>
+    <g stroke="#8a7f6d" stroke-width="1.1" fill="none" marker-end="url(#ah)">
+      <path d="M166,178 L236,66"/><path d="M166,181 L236,128"/><path d="M166,185 L236,190"/>
+      <path d="M166,190 L236,252"/><path d="M166,194 L236,314"/>
+      <path d="M457,66 L512,66"/><path d="M457,128 L512,128"/><path d="M457,190 L512,190"/>
+      <path d="M457,252 L512,252"/><path d="M457,314 L512,314"/>
+    </g>
+    <line x1="478" y1="42" x2="478" y2="216" stroke="#2F6B4F" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="478" y1="228" x2="478" y2="340" stroke="#8C3A2E" stroke-width="2.5" stroke-linecap="round"/>
+    <g>
+      <rect x="514" y="40" width="250" height="52" rx="6" fill="#fff" stroke="#2F6B4F" stroke-width="1.6"/>
+      <text x="639" y="62" text-anchor="middle" font-size="13" font-weight="700" fill="#3A2F23">Illiquidity Premium</text>
+      <text x="639" y="79" text-anchor="middle" font-size="11.5" fill="#5c5344">&minus; &Delta;-ILP</text>
+      <rect x="514" y="102" width="250" height="52" rx="6" fill="#fff" stroke="#2F6B4F" stroke-width="1.6"/>
+      <text x="639" y="124" text-anchor="middle" font-size="13" font-weight="700" fill="#3A2F23">Information Asymmetry</text>
+      <text x="639" y="141" text-anchor="middle" font-size="11.5" fill="#5c5344">&minus; &Delta;-IAP</text>
+      <rect x="514" y="164" width="250" height="52" rx="6" fill="#fff" stroke="#2F6B4F" stroke-width="1.6"/>
+      <text x="639" y="186" text-anchor="middle" font-size="13" font-weight="700" fill="#3A2F23">Collateral Quality</text>
+      <text x="639" y="203" text-anchor="middle" font-size="11.5" fill="#5c5344">&minus; &Delta;-K<tspan baseline-shift="sub" font-size="9">d</tspan> &times; (D/V)</text>
+      <rect x="514" y="226" width="250" height="52" rx="6" fill="#fff" stroke="#8C3A2E" stroke-width="1.6"/>
+      <text x="639" y="248" text-anchor="middle" font-size="13" font-weight="700" fill="#3A2F23">Smart-Contract Risk</text>
+      <text x="639" y="265" text-anchor="middle" font-size="11.5" fill="#5c5344">+ SC_spread</text>
+      <rect x="514" y="288" width="250" height="52" rx="6" fill="#fff" stroke="#8C3A2E" stroke-width="1.6"/>
+      <text x="639" y="310" text-anchor="middle" font-size="13" font-weight="700" fill="#3A2F23">Regulatory Uncertainty</text>
+      <text x="639" y="327" text-anchor="middle" font-size="11.5" fill="#5c5344">+ Reg_spread</text>
+    </g>
+    <g font-size="11" font-weight="700">
+      <text x="790" y="61" fill="#2F6B4F">Mechanism confirmed</text>
+      <text x="790" y="76" fill="#2F6B4F" font-weight="400">DiD &minus;2.70%, p &lt; 0.001</text>
+      <text x="790" y="123" fill="#6B6255">Literature-anchored</text>
+      <text x="790" y="138" fill="#6B6255" font-weight="400">Easley&ndash;O'Hara</text>
+      <text x="790" y="185" fill="#6B6255">Literature-anchored</text>
+      <text x="790" y="200" fill="#6B6255" font-weight="400">Bernanke&ndash;Gertler</text>
+      <text x="790" y="247" fill="#8C3A2E">Directional</text>
+      <text x="790" y="262" fill="#8C3A2E" font-weight="400">0 / 1,169 audits disclosed</text>
+      <text x="790" y="309" fill="#8C3A2E">Not robust</text>
+      <text x="790" y="324" fill="#8C3A2E" font-weight="400">WCB p = 0.31</text>
+    </g>
+    <rect x="14" y="358" width="972" height="34" rx="6" fill="#F5F1E8" stroke="#A8842C"/>
+    <text x="500" y="380" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3A2F23">
+      WACC<tspan baseline-shift="sub" font-size="9">TAVE</tspan> = WACC<tspan baseline-shift="sub" font-size="9">base</tspan> &minus; &Delta;-ILP &minus; &Delta;-IAP &minus; &Delta;-K<tspan baseline-shift="sub" font-size="9">d</tspan>&times;(D/V) + SC<tspan baseline-shift="sub" font-size="9">spread</tspan> + Reg<tspan baseline-shift="sub" font-size="9">spread</tspan>
+    </text>
+  </svg>
+</div>
+
+<div class="app">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="section-label">Tokenized Asset Class</div>
+    <div class="asset-grid" id="asset-grid"></div>
+    <div class="asset-meta" id="asset-meta"></div>
+
+    <div class="section-label">Tokenization Programme</div>
+    <div class="input-group">
+      <div class="input-label">Asset Book Value (USD M) <span class="input-value" id="val-bookval">$420M</span></div>
+      <input type="range" min="10" max="2000" value="420" step="10" oninput="update('bookval',this.value,'$','M')" aria-label="Asset book value">
+    </div>
+    <div class="input-group">
+      <div class="input-label">% of Asset Tokenized <span class="input-value" id="val-pct">65%</span></div>
+      <input type="range" min="0" max="100" value="65" step="5" oninput="update('pct',this.value,'','%')" aria-label="Percent tokenized">
+    </div>
+    <div class="input-group">
+      <div class="input-label">Token Liquidity Score <span class="input-value" id="val-liq">7 / 10</span></div>
+      <input type="range" min="1" max="10" value="7" step="1" oninput="updateLiq(this.value)" aria-label="Token liquidity score">
+    </div>
+
+    <div class="section-label">Baseline Financials</div>
+    <div class="input-group">
+      <div class="input-label">Base WACC (%) <span class="input-value" id="val-wacc">9.2%</span></div>
+      <input type="range" min="4" max="18" value="9.2" step="0.1" oninput="update('wacc',this.value,'','%')" aria-label="Base WACC">
+    </div>
+    <div class="input-group">
+      <div class="input-label">Debt / Equity Ratio <span class="input-value" id="val-de">0.55</span></div>
+      <input type="range" min="0" max="2" value="0.55" step="0.05" oninput="update('de',this.value,'','')" aria-label="Debt to equity">
+    </div>
+    <div class="input-group">
+      <div class="input-label">EBITDA (USD M) <span class="input-value" id="val-ebitda">$88M</span></div>
+      <input type="range" min="5" max="500" value="88" step="5" oninput="update('ebitda',this.value,'$','M')" aria-label="EBITDA">
+    </div>
+    <div class="input-group">
+      <div class="input-label">Base EV / EBITDA <span class="input-value" id="val-mult">11.5x</span></div>
+      <input type="range" min="4" max="25" value="11.5" step="0.5" oninput="update('mult',this.value,'','x')" aria-label="EV to EBITDA multiple">
+    </div>
+
+    <div class="section-label">Regulatory &amp; Chain</div>
+    <div class="input-group">
+      <div class="input-label">Jurisdiction <span class="input-value mono" id="val-jur-score">clarity 5/5</span></div>
+      <select id="jurisdiction" onchange="recalc()">
+        <option value="5">Singapore (MAS · Project Guardian)</option>
+        <option value="5">Switzerland (FINMA · DLT Act)</option>
+        <option value="4">European Union (MiCA)</option>
+        <option value="4">United Kingdom (FCA)</option>
+        <option value="2">United States (SEC)</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <div class="input-label">Blockchain</div>
+      <select id="blockchain">
+        <option>Ethereum (ERC-3643)</option>
+        <option>Solana</option>
+        <option>Polygon</option>
+        <option>Avalanche</option>
+        <option>Private / Permissioned</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <div class="input-label">Smart-Contract Audit Disclosed <span class="input-value" id="val-audit">Yes</span></div>
+      <input type="range" min="0" max="1" value="1" step="1" oninput="updateAudit(this.value)" aria-label="Smart contract audit disclosed">
+      <div style="font-size:9.5px;color:var(--muted);margin-top:5px;line-height:1.5">
+        In the study sample, <span class="mono">0/1,169</span> events disclosed an audit — the mitigation
+        applied here is literature-assumed, not empirically estimated.
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main>
+    <div class="page-title">Tokenization <em>Impact</em> on Enterprise Equity Valuation</div>
+    <div class="page-subtitle">
+      Adjust parameters to see effects cascade through the five-channel WACC framework. Every channel carries
+      its evidence status from the underlying study:
+      <span class="badge emp-sup">Empirical · Supported</span>
+      <span class="badge emp-null">Empirical · Null</span>
+      <span class="badge dir">Directional</span>
+      <span class="badge lit">Literature + Proxy</span>
+    </div>
+
+    <!-- KPI CARDS -->
+    <div class="results-grid">
+      <div class="metric-card gold">
+        <div class="metric-name">Modelled EV Uplift</div>
+        <div class="metric-value" id="kpi-ev-uplift">+0.0%</div>
+        <div class="metric-delta" id="kpi-ev-uplift-abs">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-name">Adjusted WACC</div>
+        <div class="metric-value" id="kpi-wacc">0.0%</div>
+        <div class="metric-delta delta-down" id="kpi-wacc-delta">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-name">Liquidity Premium Δ (theoretical)</div>
+        <div class="metric-value" id="kpi-liq">0 bps</div>
+        <div class="metric-delta">Announcement test: null — literature potential only</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-name">Empirical Announcement Read</div>
+        <div class="metric-value" id="kpi-caar">−0.27%</div>
+        <div class="metric-delta" id="kpi-caar-note">Study CAAR for this asset class</div>
+      </div>
+    </div>
+
+    <!-- WACC + EFFECTS -->
+    <div class="wacc-grid">
+      <div class="panel">
+        <div class="section-title">WACC Decomposition <span class="section-tag">Five-channel adjustment</span></div>
+        <div class="waterfall-row">
+          <div class="wf-label">Risk-Free Rate</div>
+          <div class="wf-bar-wrap"><div class="wf-bar" style="width:42%;background:var(--ink)"></div></div>
+          <div class="wf-val">3.8%</div>
+        </div>
+        <div class="waterfall-row">
+          <div class="wf-label">Equity Risk Premium</div>
+          <div class="wf-bar-wrap"><div class="wf-bar" style="width:38%;background:var(--bronze)"></div></div>
+          <div class="wf-val" id="wf-erp">3.4%</div>
+        </div>
+        <div class="waterfall-row">
+          <div class="wf-label">Illiquidity Premium <span class="badge emp-sup">DiD</span></div>
+          <div class="wf-bar-wrap"><div class="wf-bar" id="bar-iliq" style="width:10%;background:var(--gold)"></div></div>
+          <div class="wf-val" id="wf-iliq">0.9%</div>
+        </div>
+        <div class="waterfall-row">
+          <div class="wf-label">Info-Asymmetry Premium <span class="badge lit">Lit.</span></div>
+          <div class="wf-bar-wrap"><div class="wf-bar" id="bar-info" style="width:4%;background:var(--earth)"></div></div>
+          <div class="wf-val" id="wf-info">0.4%</div>
+        </div>
+        <div class="waterfall-row">
+          <div class="wf-label">Collateral Δ-Kd <span class="badge lit">Lit.</span></div>
+          <div class="wf-bar-wrap"><div class="wf-bar" id="bar-col" style="width:3%;background:var(--earth)"></div></div>
+          <div class="wf-val" id="wf-col">−0.1%</div>
+        </div>
+        <div class="waterfall-row">
+          <div class="wf-label">Smart-Contract Risk <span class="badge dir">Dir.</span></div>
+          <div class="wf-bar-wrap"><div class="wf-bar" id="bar-sc" style="width:3%;background:var(--neg)"></div></div>
+          <div class="wf-val" id="wf-sc">+0.2%</div>
+        </div>
+        <div class="waterfall-row">
+          <div class="wf-label">Regulatory Haircut <span class="badge dir">Dir.</span></div>
+          <div class="wf-bar-wrap"><div class="wf-bar" id="bar-reg" style="width:5%;background:var(--gold-deep)"></div></div>
+          <div class="wf-val" id="wf-reg">+0.4%</div>
+        </div>
+        <div class="waterfall-row wf-total">
+          <div class="wf-label">Adjusted WACC</div>
+          <div class="wf-bar-wrap"><div class="wf-bar" id="bar-total" style="width:87%;background:var(--gold)"></div></div>
+          <div class="wf-val" id="wf-total" style="color:var(--gold-deep)">7.9%</div>
+        </div>
+        <div style="font-size:9.5px;color:var(--muted);margin-top:12px;line-height:1.6">
+          The jurisdiction effect is empirically significant in the study (p&lt;0.001). The haircut shown follows
+          the theoretical clarity→lower-uncertainty mapping; the announcement-window sign is sample-specific
+          (the highest-clarity cohort is outlier-influenced) and is not a market parameter.
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-title">Valuation Effects <span class="section-tag">First-order impacts</span></div>
+        <div class="effect-row">
+          <div>
+            <div class="effect-name">Liquidity Discount Reversal <span class="badge emp-sup">Empirical · DiD-Supported</span></div>
+            <div class="effect-desc">Amihud–Mendelson channel, now empirically anchored: a matched-control difference-in-differences test shows price impact falling 2.70% vs non-announcing peers (p &lt; 0.001, N = 1,167). Cross-sectional pricing remains null (p = 0.63) — the mechanism operates before the market prices it; repricing is the long-horizon expectation.</div>
+          </div>
+          <div>
+            <div class="effect-impact" style="color:var(--pos)" id="eff-liq">+$0M</div>
+            <div class="effect-direction" style="color:var(--muted)">not priced at announcement</div>
+          </div>
+        </div>
+        <div class="effect-row">
+          <div>
+            <div class="effect-name">Collateral Quality Uplift <span class="badge lit">Literature + Proxy</span></div>
+            <div class="effect-desc">Bernanke–Gertler channel; 20–60 bps Δ-Kd literature range (mid 40 bps on the debt weight). Provenance proxy in the study: directionally consistent, not significant (Welch p = 0.22).</div>
+          </div>
+          <div>
+            <div class="effect-impact" style="color:var(--pos)" id="eff-col">+$0M</div>
+            <div class="effect-direction" style="color:var(--muted)">literature-assumed</div>
+          </div>
+        </div>
+        <div class="effect-row">
+          <div>
+            <div class="effect-name">Information Efficiency Gain <span class="badge lit">Literature + Proxy</span></div>
+            <div class="effect-desc">Easley–O'Hara channel; 0–150 bps literature range (mid 75 bps scaled). Untested directly — requires microstructure data; structural proxy non-significant.</div>
+          </div>
+          <div>
+            <div class="effect-impact" style="color:var(--pos)" id="eff-info">+$0M</div>
+            <div class="effect-direction" style="color:var(--muted)">literature-assumed</div>
+          </div>
+        </div>
+        <div class="effect-row">
+          <div>
+            <div class="effect-name">Smart-Contract Execution Risk <span class="badge dir">Directional</span></div>
+            <div class="effect-desc">Direction inferred from the study's significant negative announcement reaction (−0.260%, p = 0.002). Audit mitigation literature-assumed — 0/1,169 sample events disclosed an audit.</div>
+          </div>
+          <div>
+            <div class="effect-impact" style="color:var(--neg)" id="eff-sc">−$0M</div>
+            <div class="effect-direction" style="color:var(--neg)">risk-priced</div>
+          </div>
+        </div>
+        <div class="effect-row">
+          <div>
+            <div class="effect-name">Regulatory Uncertainty Haircut <span class="badge dir">Directional · Not Robust</span></div>
+            <div class="effect-desc">An apparent jurisdiction gradient (analytic p &lt; 0.001) collapses under the robustness battery: wild-cluster bootstrap p = 0.31; p = 0.85 excluding one misbenchmarked firm; absorbed by announcement-composition controls. Treated as a theoretical clarity mapping, not an empirical estimate.</div>
+          </div>
+          <div>
+            <div class="effect-impact" style="color:var(--neg)" id="eff-reg">−$0M</div>
+            <div class="effect-direction" style="color:var(--neg)">jurisdiction-priced</div>
+          </div>
+        </div>
+        <div class="effect-row">
+          <div><div class="effect-name" style="font-weight:bold">Net Modelled Effect</div></div>
+          <div><div class="effect-impact" id="eff-net" style="color:var(--gold-deep)">+$0M</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FORMULA -->
+    <div class="formula-panel">
+      <div class="fn-title">The Core Valuation Identity</div>
+      <div class="formula">
+        WACC<b>_TAVE</b> = WACC_base − <b>ΔILP</b>(asset, liq) − <b>ΔIAP</b>(lit.) − <b>ΔKd</b>(lit.)·w_d + <b>SC</b>(dir.) + <b>REG</b>(jurisdiction)<br>
+        EV<b>_TAVE</b> = EBITDA × Multiple × (1 + f(ΔWACC)) &nbsp;·&nbsp; channels weighted by evidence status
+      </div>
+    </div>
+
+    <!-- SCENARIOS -->
+    <div class="panel" style="margin-bottom:26px">
+      <div class="section-title">Scenario Analysis <span class="section-tag">Three-state model</span></div>
+      <div class="scenario-grid" id="scenarios"></div>
+    </div>
+
+    <!-- HEATMAP -->
+    <div class="panel">
+      <div class="section-title">Sensitivity: Modelled EV Uplift (bps) <span class="section-tag">Token liquidity × % tokenized</span></div>
+      <div id="heatmap-container"></div>
+      <div style="font-size:10px;color:var(--muted);margin-top:12px;line-height:1.6">
+        Rows = % of asset tokenized. Columns = Token Liquidity Score (1–10). Values = modelled net WACC-channel
+        effect in basis points for the selected asset class and jurisdiction. Theoretical model output — the
+        empirical announcement-window reaction in the study was negative on average.
+      </div>
+    </div>
+  </main>
+</div>
+
+<footer>
+  <b>TAVE — Tokenized Asset Valuation Engine · Research edition.</b> © 2026 Felix Diego Langer · AGPL-3.0
+  (commercial licensing available separately — COMMERCIAL.md). This tool implements the five-channel framework of the
+  accompanying SSRN working paper ("From Illiquidity to On-Chain", 2026); please cite the paper in academic or
+  commercial use.<br><br>
+  <b>Disclaimer.</b> Research instrument only — not investment, legal, tax, or accounting advice; no
+  recommendation, solicitation, or offer in any jurisdiction (incl. MiFID II, U.S. Investment Advisers Act 1940,
+  Singapore Financial Advisers Act 2001). Empirical values derive from one academic event study (1,169 firm-events,
+  2021–2025, 17 firm clusters) with documented limitations; the illiquidity channel tested null at announcement;
+  information-asymmetry and collateral channels are literature-assumed; smart-contract risk is directional. Outputs
+  are illustrative research estimates, not valuations. Provided "as is", without warranty; no liability accepted for
+  reliance on this tool.
+</footer>
+
+<script>
+  /* ====== PAPER-CALIBRATED DATA ====== */
+  // ILP_max: literature illiquidity premium (% p.a.) — Amihud–Mendelson family.
+  // caar/p/n: the study's announcement-window CAAR per asset class (-1,+1).
+  const ASSETS = {
+    'Supply Chain':   { ilp: 1.80, caar: -0.00, p: null,  n: 1   },
+    'Receivables':    { ilp: 1.60, caar: -0.90, p: 0.54,  n: 2   },
+    'Real Estate':    { ilp: 1.20, caar: -0.14, p: 0.63,  n: 104 },
+    'Fund':           { ilp: 0.80, caar: -0.58, p: 0.016, n: 112 },
+    'Bond':           { ilp: 0.60, caar: -0.34, p: 0.048, n: 226 },
+    'Gold/Commodity': { ilp: 0.40, caar: 0.44,  p: 0.13,  n: 22  },
+    'Equity':         { ilp: 0.20, caar: -0.27, p: 0.36,  n: 82  },
+    'Deposit':        { ilp: 0.10, caar: -0.21, p: 0.20,  n: 231 }
+  };
+  // Regulatory haircut (% on WACC at full tokenization) — theoretical clarity mapping,
+  // span anchored to the study's significant five-jurisdiction gradient.
+  function regSpreadFor(score, tf) {
+    const base = 0.20, perPoint = 0.117;   // SG/CH 0.20% ... US 0.55% at tf = 1
+    return (base + (5 - score) * perPoint) * tf;
+  }
+  const LIT = { iapMid: 0.75, dKdMid: 0.40, scBase: 0.35, auditMitigation: 0.6 };
+
+  const state = { bookval: 420, pct: 65, liq: 7, wacc: 9.2, de: 0.55,
+                  ebitda: 88, mult: 11.5, audit: 1, asset: 'Bond' };
+
+  /* ====== UI wiring ====== */
+  function buildAssetGrid() {
+    const grid = document.getElementById('asset-grid');
+    grid.innerHTML = Object.keys(ASSETS).map(name =>
+      '<button class="asset-btn' + (name === state.asset ? ' active' : '') +
+      '" onclick="setAsset(this,\'' + name.replace(/'/g, "\\'") + '\')">' + name + '</button>'
+    ).join('');
+  }
+  function setAsset(btn, name) {
+    document.querySelectorAll('.asset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.asset = name;
+    recalc();
+  }
+  function update(key, val, prefix, suffix) {
+    state[key] = parseFloat(val);
+    document.getElementById('val-' + key).textContent = (prefix || '') + val + (suffix || '');
+    recalc();
+  }
+  function updateLiq(val) {
+    state.liq = parseInt(val);
+    document.getElementById('val-liq').textContent = val + ' / 10';
+    recalc();
+  }
+  function updateAudit(val) {
+    state.audit = parseInt(val);
+    document.getElementById('val-audit').textContent = val === '1' ? 'Yes' : 'No';
+    recalc();
+  }
+  function fmt(n, dec) { return n.toFixed(dec === undefined ? 1 : dec); }
+  function fmtM(n) { return (n >= 0 ? '+$' : '−$') + Math.abs(Math.round(n)) + 'M'; }
+
+  /* ====== MODEL ====== */
+  function channels(tf, liqN, score, audit, asset, de) {
+    const a = ASSETS[asset];
+    const dLP  = tf * liqN * a.ilp;                                   // ch.1 — literature potential (announcement test: null)
+    const dIAP = tf * liqN * LIT.iapMid;                              // ch.2 — literature 0–1.5%, mid
+    const wd   = de / (1 + de);
+    const dKd  = tf * LIT.dKdMid * wd;                                // ch.3 — literature 20–60bps on debt weight
+    const sc   = LIT.scBase * (1 - audit * LIT.auditMitigation) * tf; // ch.4a — directional
+    const reg  = regSpreadFor(score, tf);                             // ch.4b — jurisdiction (theoretical mapping; not robust empirically, WCB p = 0.31)
+    return { dLP: dLP, dIAP: dIAP, dKd: dKd, sc: sc, reg: reg };
+  }
+
+  function recalc() {
+    const pct = state.pct, liq = state.liq, wacc = state.wacc, de = state.de,
+          ebitda = state.ebitda, mult = state.mult, audit = state.audit, asset = state.asset;
+    const tf = pct / 100, liqN = liq / 10;
+    const score = parseInt(document.getElementById('jurisdiction').value);
+    document.getElementById('val-jur-score').textContent = 'clarity ' + score + '/5';
+
+    const ch = channels(tf, liqN, score, audit, asset, de);
+    const waccAdj = Math.max(3.5, wacc - ch.dLP - ch.dIAP - ch.dKd + ch.sc + ch.reg);
+
+    const baseEV = ebitda * mult;
+    const netPP = ch.dLP + ch.dIAP + ch.dKd - ch.sc - ch.reg;   // net WACC improvement, pp
+    const multAdj = mult * (1 + netPP * 0.07);                   // 7% multiple sensitivity per pp
+    const adjEV = ebitda * multAdj;
+    const evUplift = ((adjEV - baseEV) / baseEV) * 100;
+
+    const effLiq  = baseEV * ch.dLP  * 0.07;
+    const effCol  = baseEV * ch.dKd  * 0.07;
+    const effInfo = baseEV * ch.dIAP * 0.06;
+    const effSC   = -baseEV * ch.sc  * 0.07;
+    const effReg  = -baseEV * ch.reg * 0.07;
+    const netEff  = effLiq + effCol + effInfo + effSC + effReg;
+
+    document.getElementById('kpi-ev-uplift').textContent = (evUplift >= 0 ? '+' : '') + fmt(evUplift) + '%';
+    document.getElementById('kpi-ev-uplift-abs').textContent =
+      (netEff >= 0 ? '▲ ' : '▼ ') + fmtM(netEff) + ' on base EV of $' + Math.round(baseEV) + 'M (model)';
+    document.getElementById('kpi-wacc').textContent = fmt(waccAdj) + '%';
+    document.getElementById('kpi-wacc-delta').textContent =
+      (waccAdj <= wacc ? '▼ −' : '▲ +') + fmt(Math.abs(wacc - waccAdj), 2) + 'pp vs baseline';
+    document.getElementById('kpi-liq').textContent = '−' + Math.round(ch.dLP * 100) + ' bps';
+
+    const a = ASSETS[asset];
+    document.getElementById('kpi-caar').textContent = (a.caar >= 0 ? '+' : '') + fmt(a.caar, 2) + '%';
+    document.getElementById('kpi-caar-note').textContent =
+      a.p === null ? 'Study CAAR · N=' + a.n + ' (too small to test)'
+      : 'Study CAAR · N=' + a.n + ' · p=' + a.p + (a.p < 0.05 ? ' — significant' : ' — n.s.');
+
+    const iliqRes = Math.max(0.05, a.ilp - ch.dLP);
+    const infoRes = Math.max(0.05, LIT.iapMid - ch.dIAP);
+    document.getElementById('wf-erp').textContent  = '3.4%';
+    document.getElementById('wf-iliq').textContent = fmt(iliqRes, 2) + '%';
+    document.getElementById('wf-info').textContent = fmt(infoRes, 2) + '%';
+    document.getElementById('wf-col').textContent  = '−' + fmt(ch.dKd, 2) + '%';
+    document.getElementById('wf-sc').textContent   = '+' + fmt(ch.sc, 2) + '%';
+    document.getElementById('wf-reg').textContent  = '+' + fmt(ch.reg, 2) + '%';
+    document.getElementById('wf-total').textContent = fmt(waccAdj) + '%';
+    document.getElementById('bar-iliq').style.width = Math.min(95, iliqRes * 28) + '%';
+    document.getElementById('bar-info').style.width = Math.min(95, infoRes * 28) + '%';
+    document.getElementById('bar-col').style.width  = Math.min(95, ch.dKd * 60) + '%';
+    document.getElementById('bar-sc').style.width   = Math.min(95, ch.sc * 60) + '%';
+    document.getElementById('bar-reg').style.width  = Math.min(95, ch.reg * 60) + '%';
+    document.getElementById('bar-total').style.width = Math.min(95, waccAdj * 7.5) + '%';
+
+    document.getElementById('eff-liq').textContent  = fmtM(effLiq);
+    document.getElementById('eff-col').textContent  = fmtM(effCol);
+    document.getElementById('eff-info').textContent = fmtM(effInfo);
+    document.getElementById('eff-sc').textContent   = fmtM(effSC);
+    document.getElementById('eff-reg').textContent  = fmtM(effReg);
+    document.getElementById('eff-net').textContent  = fmtM(netEff);
+
+    document.getElementById('asset-meta').innerHTML =
+      '<b>' + asset + '</b> — ILP<sub>max</sub> <span class="mono">' + a.ilp.toFixed(2) + '%</span> (literature) · ' +
+      'study CAAR <span class="mono">' + (a.caar >= 0 ? '+' : '') + a.caar.toFixed(2) + '%</span>' +
+      (a.p === null ? ' (N=' + a.n + ', untestable)'
+        : ' (N=' + a.n + ', p=' + a.p + (a.p < 0.05 ? ' — significant' : ' — n.s.') + ')');
+
+    renderScenarios(tf, liqN, score, de, wacc);
+    renderHeatmap(score, de);
+  }
+
+  /* ====== SCENARIOS ====== */
+  function renderScenarios(tf, liqN, score, de, wacc) {
+    const defs = [
+      { name: 'Conservative', f: 0.6, note: 'lower-bound literature values' },
+      { name: 'Base',         f: 1.0, note: 'mid-range calibration' },
+      { name: 'Optimistic',   f: 1.4, note: 'upper-bound literature values' }
+    ];
+    document.getElementById('scenarios').innerHTML = defs.map(d => {
+      const ch = channels(tf, liqN, score, state.audit, state.asset, de);
+      const net = (ch.dLP + ch.dIAP + ch.dKd) * d.f - ch.sc - ch.reg;
+      const wAdj = Math.max(3.5, wacc - net);
+      const upPP = net;
+      return '<div class="scenario"><h4>' + d.name + '</h4>' +
+        '<div class="s-line"><span>Benefit-channel factor</span><span class="mono">×' + d.f.toFixed(1) + '</span></div>' +
+        '<div class="s-line"><span>Adjusted WACC</span><span class="mono">' + wAdj.toFixed(1) + '%</span></div>' +
+        '<div class="s-line"><span>Net WACC effect</span><span class="mono">' + (upPP >= 0 ? '−' : '+') + Math.abs(upPP).toFixed(2) + 'pp</span></div>' +
+        '<div class="s-line"><span style="font-size:9.5px;color:var(--muted)">' + d.note + '</span><span></span></div>' +
+        '</div>';
+    }).join('');
+  }
+
+  /* ====== HEATMAP (bone -> gold-deep gradient) ====== */
+  function renderHeatmap(score, de) {
+    const pcts = [20, 40, 60, 80, 100], liqs = [2, 4, 6, 8, 10];
+    let html = '<div class="heatmap"><div class="hm-cell hm-header">% Token\'d</div>';
+    liqs.forEach(l => html += '<div class="hm-cell hm-header">Liq ' + l + '</div>');
+    pcts.forEach(p => {
+      html += '<div class="hm-cell hm-row-label">' + p + '%</div>';
+      liqs.forEach(l => {
+        const ch = channels(p / 100, l / 10, score, state.audit, state.asset, de);
+        const bps = Math.round((ch.dLP + ch.dIAP + ch.dKd - ch.sc - ch.reg) * 100);
+        const t = Math.max(0, Math.min(1, bps / 220));
+        const rr = Math.round(245 - t * 119), gg = Math.round(241 - t * 142), bb = Math.round(232 - t * 200);
+        const col = t > 0.55 ? '#FBF8F1' : '#3A2F23';
+        html += '<div class="hm-cell" style="background:rgb(' + rr + ',' + gg + ',' + bb + ');color:' + col + '">' +
+                (bps > 0 ? '+' : '') + bps + '</div>';
+      });
+    });
+    html += '</div>';
+    document.getElementById('heatmap-container').innerHTML = html;
+  }
+
+  /* ====== init ====== */
+  buildAssetGrid();
+  recalc();
+</script>
+</body>
+</html>
